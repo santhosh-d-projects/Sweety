@@ -11,7 +11,7 @@ function signToken(user) {
   return jwt.sign(
     { id: user.id, email: user.email },
     process.env.JWT_SECRET,
-    { expiresIn: '7d' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 }
 
@@ -38,7 +38,7 @@ router.post('/register', async (req, res) => {
     return res.status(201).json({ token: signToken(user), user });
   } catch (err) {
     if (err.code === '23505') {
-      return res.status(400).json({ error: 'An account with this email already exists.' });
+      return res.status(409).json({ error: 'An account with this email already exists.' });
     }
     console.error('Register error:', err);
     return res.status(500).json({ error: 'Something went wrong. Please try again.' });
