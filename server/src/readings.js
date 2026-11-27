@@ -130,6 +130,9 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isInteger(id)) {
+    return res.status(404).json({ error: 'Reading not found.' });
+  }
   try {
     const { rowCount } = await pool.query(
       'DELETE FROM readings WHERE id = $1 AND user_id = $2',
