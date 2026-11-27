@@ -176,10 +176,12 @@ function ReportsSection({ refreshKey }) {
   const [mtd, setMtd] = useState(null);
   const [monthly, setMonthly] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError('');
     Promise.all([api.dailyReport(date), api.monthToDateReport(date), api.monthlyReport(date)])
       .then(([d, m, mo]) => {
         if (cancelled) return;
@@ -187,11 +189,12 @@ function ReportsSection({ refreshKey }) {
         setMtd(m);
         setMonthly(mo);
       })
-      .catch(() => {
+      .catch((err) => {
         if (!cancelled) {
           setDaily(null);
           setMtd(null);
           setMonthly(null);
+          setError(err.message || 'Could not load reports.');
         }
       })
       .finally(() => {
@@ -218,6 +221,7 @@ function ReportsSection({ refreshKey }) {
         Report date
         <input type="date" value={date} max={todayLocal()} onChange={(e) => setDate(e.target.value)} />
       </label>
+      {error && <p className="error">{error}</p>}
       <div className="reports">
         <ReportCard title="Daily" range={daily ? fmt(daily.start_date) : fmt(date)} report={daily} loading={loading} />
         <ReportCard
@@ -243,6 +247,7 @@ function ReadingsPage({ user, onLogout }) {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(null);
   const [reportKey, setReportKey] = useState(0);
+  const [formKey, setFormKey] = useState(0);
 
   async function refresh() {
     try {
@@ -251,6 +256,11 @@ function ReadingsPage({ user, onLogout }) {
       setReportKey((k) => k + 1);
       setError('');
     } catch (err) {
+      // An expired/invalid token means the session is over — go back to login.
+      if (err.message.includes('log in')) {
+        onLogout();
+        return;
+      }
       setError(err.message);
     } finally {
       setLoading(false);
@@ -264,6 +274,8 @@ function ReadingsPage({ user, onLogout }) {
   async function handleCreate(payload) {
     await api.createReading(payload);
     await refresh();
+    // Fresh, empty form after a successful save.
+    setFormKey((k) => k + 1);
   }
 
   async function handleUpdate(payload) {
@@ -297,7 +309,7 @@ function ReadingsPage({ user, onLogout }) {
       <div className="card">
         <h2>{editing ? 'Edit reading' : 'Add a reading'}</h2>
         <ReadingForm
-          key={editing ? editing.id : 'new'}
+          key={editing ? editing.id : `new-${formKey}`}
           initial={editing}
           onSave={editing ? handleUpdate : handleCreate}
           onCancel={editing ? () => setEditing(null) : null}
@@ -340,16 +352,30 @@ function ReadingsPage({ user, onLogout }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  // Stay logged in across refreshes: the token and the user are in
+  // localStorage from the last login.
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sweety_user'));
+    } catch {
+      return null;
+    }
+  });
+
+  function handleAuth(u) {
+    localStorage.setItem('sweety_user', JSON.stringify(u));
+    setUser(u);
+  }
 
   function logout() {
     setToken(null);
+    localStorage.removeItem('sweety_user');
     setUser(null);
   }
 
   return (
     <div className="app">
-      {user ? <ReadingsPage user={user} onLogout={logout} /> : <AuthForm onAuth={setUser} />}
+      {user ? <ReadingsPage user={user} onLogout={logout} /> : <AuthForm onAuth={handleAuth} />}
     </div>
   );
 }
