@@ -261,7 +261,7 @@ month-to-date. Example: `?date=2026-11-15` covers `2026-10-01` to
 ![Reports](docs/screenshots/reports.png)
 ![Validation error](docs/screenshots/validation-error.png)
 
-Screen recording (2–3 minute walkthrough): [link to be added]
+Screen recording (2–3 minute walkthrough): [Watch the demo video](https://drive.google.com/file/d/1cwG34r_TUtaeeISJT0KcfmU_tSPxzWfA/view?usp=drivesdk)
 
 ## Notes
 
